@@ -1,3 +1,6 @@
+import 'dart:developer';
+
+import 'package:luf_turism_app/models/place.dart';
 import 'package:pocketbase/pocketbase.dart';
 
 class PocketBaseService {
@@ -67,22 +70,41 @@ class PocketBaseService {
   }
 
   //Funcion para obtener los lugares favoritos en la base de datos de una lista con los id de los lugares
-  static Future<List<dynamic>> getFavorites(List<String> favorites) async {
-    String url = "https://boring-carpenter.pockethost.io/api/files/";
+  static Future<List<Place>> getFavorites(List<String> favorites) async {
+    String imageUrl = 'https://boring-carpenter.pockethost.io/api/files/';
+
+    //String url = "https://boring-carpenter.pockethost.io/api/files/";
     // Obtiene las categorias creadas
-    List<dynamic> records = await pb.collection("location").getFullList();
+    List<RecordModel> records = await pb.collection("location").getFullList(filter: "status = 'active'");
     records = records.where((record) {
-      return favorites.contains(record['id']);
-    }).toList();
-    records = records.map((record) {
-      return {
-        ...record,
-        // url del backend + id de la coleccion + id del registro + nombre de la imagen
-        'image': record['photos'] != null ? url + record['collectionId'] + "/" + record['id'] + "/" + record['photos'][0] : null,
-      };
+      return favorites.contains(record.id);
     }).toList();
 
-    return records;
+
+    List<Place> places = records.map((document) {
+            return Place(
+              id: document.id,
+              collectionId: document.collectionId,
+              collectionName: document.collectionName,
+              name: document.data['name'],
+              address: document.data['address'],
+              longitude: document.data['longitude'].toDouble(),
+              latitude: document.data['latitude'].toDouble(),
+              description: document.data['description'],
+              status: document.data['status'],
+              photos: document.data['photos']
+                  .map<String>((photo) =>
+                      '$imageUrl${document.collectionId}/${document.id}/$photo')
+                  .toList(),
+              cityId: document.data['city_id'],
+              categoryId: List<String>.from(document.data['category_id']),
+              type: document.data['type'] ?? '',
+              schedule: document.data['schedule'] ?? '',
+            );
+    }).toList();
+
+
+    return places;
   }
 
 
@@ -92,7 +114,7 @@ class PocketBaseService {
     );
 
     return records.where((record) {
-      print(record);
+      log('record: $record');
       return record.data['status'] == 'active' && record.data['category_id'].contains(categoryId);
       
     }).toList();

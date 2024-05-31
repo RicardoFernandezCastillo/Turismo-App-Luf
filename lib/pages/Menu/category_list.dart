@@ -77,7 +77,7 @@ class CategoriesPageState extends State<CategoriesPage> {
                       context,
                       MaterialPageRoute(
                         builder: (context) =>
-                            MapClient(categoryId: category.id),
+                            MapClient(categoryId: category.id, categoryName: category.data['name']),
                       ),
                     );
                     // Aquí puedes manejar el evento de toque, por ejemplo, navegando a una nueva pantalla

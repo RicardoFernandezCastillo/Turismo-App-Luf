@@ -1,23 +1,26 @@
 import 'dart:async';
 import 'dart:developer';
 
+import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:location/location.dart';
 import 'package:luf_turism_app/models/place.dart';
-import 'package:luf_turism_app/pages/category_list.dart';
+import 'package:luf_turism_app/services/favorites_service.dart';
 import 'package:pocketbase/pocketbase.dart';
 
 class MapClient extends StatefulWidget {
   final String categoryId;
-  const MapClient({super.key, required this.categoryId});
+  final String categoryName;
+  const MapClient({super.key, required this.categoryId, required this.categoryName});
 
   @override
   State<MapClient> createState() => _MapClientState();
 }
 
 class _MapClientState extends State<MapClient> {
+  final String imageUrl = 'https://boring-carpenter.pockethost.io/api/files/';
   final MapController mapController = MapController();
   final Location location = Location();
   LatLng userLocation = const LatLng(0, 0);
@@ -53,7 +56,7 @@ class _MapClientState extends State<MapClient> {
         ),
         title: const Text('Todos los lugares',
             style: TextStyle(fontSize: 20, color: Colors.white)),
-        backgroundColor: Colors.blue,
+        backgroundColor: Colors.green[700],
       ),
       body: StreamBuilder<List<RecordModel>>(
         stream: getAllPlacesByCategory5(widget.categoryId),
@@ -66,22 +69,24 @@ class _MapClientState extends State<MapClient> {
             return Text('Error: ${snapshot.error}');
           }
           List<Place> places = snapshot.data!.map((document) {
-            //Map<String, dynamic> data = document.data() as Map<String, dynamic>;
             return Place(
               id: document.id,
               collectionId: document.collectionId,
               collectionName: document.collectionName,
               name: document.data['name'],
               address: document.data['address'],
-              longitude: document.data['longitude'],
-              latitude: document.data['latitude'],
+              longitude: document.data['longitude'].toDouble(),
+              latitude: document.data['latitude'].toDouble(),
               description: document.data['description'],
               status: document.data['status'],
-              photos: List<String>.from(document.data['photos']),
+              photos: document.data['photos']
+                  .map<String>((photo) =>
+                      '$imageUrl${document.collectionId}/${document.id}/$photo')
+                  .toList(),
               cityId: document.data['city_id'],
               categoryId: List<String>.from(document.data['category_id']),
               type: document.data['type'] ?? '',
-              schedule: document.data['schedule']?? '',
+              schedule: document.data['schedule'] ?? '',
             );
           }).toList();
 
@@ -112,31 +117,26 @@ class _MapClientState extends State<MapClient> {
                         iconSize: 45,
                         onPressed: () {},
                       )),
-                  ...places.map((parking) {
+                  ...places.map((place) {
                     return Marker(
                       width: 80.0,
                       height: 80.0,
                       point: LatLng(
-                        parking.latitude,
-                        parking.longitude,
+                        place.latitude,
+                        place.longitude,
                       ),
                       child: IconButton(
                         icon: const Icon(Icons.park),
                         color: Colors.blue,
                         iconSize: 45,
                         onPressed: () {
+                          place.type = widget.categoryName;
                           showModalBottomSheet(
                             context: context,
                             builder: (context) {
                               return itemDetail(
-                                  parking.name,
-                                  parking.name,
-                                  parking.name,
-                                  false,
-                                  context,
-                                  parking.photos.isNotEmpty
-                                      ? parking.photos[0]
-                                      : null);
+                                  place,
+                                  context);
                             },
                           );
                         },
@@ -155,7 +155,7 @@ class _MapClientState extends State<MapClient> {
           FloatingActionButton(
             onPressed: () {
               mapController.move(userLocation, 16.0);
-              // Centra el mapa en la ubicación del usuario con un zoom de 16.0
+              //Centra el mapa en la ubicación del usuario con un zoom de 16.0
             },
             child: const Icon(Icons.location_on),
           ),
@@ -186,141 +186,91 @@ class _MapClientState extends State<MapClient> {
   }
 }
 
-Widget itemDetail(String name, String description, String direccion,
-    bool tieneCobertura, BuildContext context, String? urlImage) {
+Widget itemDetail(Place place, BuildContext context) {
   const style = TextStyle(fontSize: 16);
   return Padding(
     padding: const EdgeInsets.all(15),
     child: Card(
       margin: const EdgeInsets.all(3),
       color: Colors.white,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(
-            child: Row(
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(place.name,style: const TextStyle(
+                    fontSize: 20, fontWeight: FontWeight.bold,),textAlign: TextAlign.center),
+            GestureDetector(
+              onTap: () {
+                //cerrar el widget
+                Navigator.pop(context);
+                
+                // agregar a favoritos
+                LocalStorageService.addToFavoritesID(place.id!);
+                //mostrar un toast
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Agregado a favoritos'),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+              },
+              child: const Icon(Icons.favorite, color: Colors.red, size: 30),
+            ),
+
+            const SizedBox(height: 20),
+            CarouselSlider(
+              options: CarouselOptions(
+                height: 150.0,
+                enlargeCenterPage: true,
+                enableInfiniteScroll: false,
+                initialPage: 0,
+              ),
+              items: place.photos.map((photoUrl) {
+                return Builder(
+                  builder: (BuildContext context) {
+                    return Image.network(
+                      photoUrl,
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                    );
+                  },
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 10),
+            Text('dirección: ${place.address}', style: style),
+            const SizedBox(height: 10),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                    child: Column(
-                  children: [
-                    Text(name,
-                        style: const TextStyle(
-                            fontSize: 20, fontWeight: FontWeight.bold)),
-                    const SizedBox(
-                      height: 20,
-                    ),
-                    Image.network(
-                      urlImage ?? '',
-                      width: 220,
-                      height: 150,
-                    ),
-                  ],
-                )),
-                Expanded(
-                    child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(name, style: style),
-                    const SizedBox(
-                      height: 10,
-                    ),
-                    Text(description, style: style),
-                    const SizedBox(
-                      height: 10,
-                    ),
-                    const Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(
-                          Icons.timer,
-                          color: Colors.blueGrey,
-                        ),
-                        Text(
-                          'Dato 1',
-                          style: style,
-                        )
-                      ],
-                    ),
-                    const SizedBox(
-                      height: 10,
-                    ),
-                    const Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(
-                          Icons.timer_off,
-                          color: Colors.blueGrey,
-                        ),
-                        Text(
-                          //Optener la hora de un timestamp
-                          'Datos 2',
-                          style: style,
-                        )
-                      ],
-                    ),
-                    const SizedBox(
-                      height: 10,
-                    ),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Icon(
-                          Icons.paragliding,
-                          color: Colors.blueGrey,
-                        ),
-                        Text(
-                          //Optener la hora de un timestamp
-                          'Calle: ${tieneCobertura ? 'SI' : 'NO'}',
-                          style: style,
-                        )
-                      ],
-                    ),
-                    const SizedBox(
-                      height: 10,
-                    ),
-                    const Text(
-                      'tipo:',
-                      style: style,
-                    ),
-                    const SizedBox(
-                      height: 10,
-                    ),
-                    const Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Icon(
-                          Icons.car_crash,
-                          color: Colors.blueGrey,
-                        ),
-                        Icon(Icons.motorcycle, color: Colors.blueGrey),
-                        Icon(Icons.train, color: Colors.blueGrey)
-                      ],
-                    )
-                  ],
-                ))
+                const Icon(Icons.description, color: Colors.blueGrey),
+                const SizedBox(width: 5),
+                //Text(place.description, style: style),
+                Expanded(child: Text(place.description, style: style,textAlign: TextAlign.justify,)),
               ],
             ),
-          ),
-          MaterialButton(
-            padding: EdgeInsets.zero,
-            onPressed: () {
-              if (!context.mounted) return;
-
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (context) => const CategoriesPage()), //),
-              );
-            },
-            color: Colors.blue,
-            elevation: 6,
-            child: const Text(
-              'Ver mas detalles',
-              style:
-                  TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            const SizedBox(height: 10),
+            Text('Tipo: ${place.type}', style: style),
+            const SizedBox(height: 10),
+            MaterialButton(
+              padding: EdgeInsets.zero,
+              onPressed: () {
+                if (!context.mounted) return;
+                // Navigator.push(
+                //   context,
+                //   MaterialPageRoute(
+                //       builder: (context) => const CategoriesPage()), //),
+                // );
+              },
+              color: Colors.blue,
+              elevation: 6,
+              child: const Text(
+                'Ver más detalles',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              ),
             ),
-          )
-        ],
+          ],
+        ),
       ),
     ),
   );
@@ -346,7 +296,6 @@ Stream<List<RecordModel>> getAllPlacesByCategory5(String categoryId) {
 
   // Suscribirse a los cambios en la colección
   pb.collection('location').subscribe('*', (e) {
-
     // Cuando se produce un cambio, obtener la lista actualizada de registros y agregarla al stream
     pb.collection('location').getFullList(sort: '-created').then((records) {
       streamController.add(

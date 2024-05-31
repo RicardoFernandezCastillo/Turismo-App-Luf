@@ -1,6 +1,6 @@
 
 import 'package:flutter/foundation.dart';
-import 'package:luf_turism_app/pages/pocket_test.dart';
+import 'package:luf_turism_app/services/pocket_test.dart';
 
 class CategoryProvider with ChangeNotifier {
   List<Category> _categories = [];

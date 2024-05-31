@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:luf_turism_app/pages/category_list.dart';
+import 'package:luf_turism_app/pages/Menu/category_list.dart';
+import 'package:luf_turism_app/pages/Menu/favorites_list.dart';
 import 'package:salomon_bottom_bar/salomon_bottom_bar.dart';
 
 class NavigationBarGoo extends StatefulWidget {
@@ -14,7 +15,7 @@ class _NavigationBarGooState extends State<NavigationBarGoo> {
 
     final List<Widget> _pages = [
     const CategoriesPage(),
-    const LikesPage(),
+    const FavoritesPage(),
     const SearchPage(),
     const ProfilePage(),
   ];
@@ -48,7 +49,7 @@ final _navBarItems = [
   ),
   SalomonBottomBarItem(
     icon: const Icon(Icons.favorite_border),
-    title: const Text("Likes"),
+    title: const Text("Favoritos"),
     selectedColor: Colors.pink,
   ),
   SalomonBottomBarItem(

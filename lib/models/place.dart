@@ -42,6 +42,7 @@ class Place {
   List<String>? categoryId;
   String ?type;
   String? schedule;
+  bool? isFavorite = false;
 
   Place({
     required this.id,
