@@ -43,7 +43,7 @@ class Place {
   String ?type;
   String? schedule;
   bool? isFavorite = false;
-
+  String? audioPath;
   Place({
     required this.id,
     required this.collectionId,
@@ -59,6 +59,8 @@ class Place {
     required this.categoryId,
     required this.type,
     required this.schedule,
+    this.audioPath,
+    this.isFavorite,
   });
 
   factory Place.fromJson(Map<String, dynamic> json) {

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:luf_turism_app/models/place.dart';
-import 'package:luf_turism_app/pages/Map/search_map.dart';
 import 'package:luf_turism_app/services/favorites_service.dart';
 import 'package:luf_turism_app/services/pocket_test.dart';
 import 'package:pocketbase/pocketbase.dart';

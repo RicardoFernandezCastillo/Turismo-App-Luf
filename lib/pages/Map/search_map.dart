@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:developer';
 
+import 'package:audioplayers/audioplayers.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -13,7 +14,8 @@ import 'package:pocketbase/pocketbase.dart';
 class MapClient extends StatefulWidget {
   final String categoryId;
   final String categoryName;
-  const MapClient({super.key, required this.categoryId, required this.categoryName});
+  const MapClient(
+      {super.key, required this.categoryId, required this.categoryName});
 
   @override
   State<MapClient> createState() => _MapClientState();
@@ -43,6 +45,8 @@ class _MapClientState extends State<MapClient> {
       log('Error obteniendo la ubicación: $e');
     }
   }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -87,6 +91,8 @@ class _MapClientState extends State<MapClient> {
               categoryId: List<String>.from(document.data['category_id']),
               type: document.data['type'] ?? '',
               schedule: document.data['schedule'] ?? '',
+              audioPath: document.data['audio_path'],
+
             );
           }).toList();
 
@@ -127,16 +133,14 @@ class _MapClientState extends State<MapClient> {
                       ),
                       child: IconButton(
                         icon: const Icon(Icons.park),
-                        color: Colors.blue,
+                        color: const Color.fromARGB(255, 1, 39, 70),
                         iconSize: 45,
                         onPressed: () {
                           place.type = widget.categoryName;
                           showModalBottomSheet(
                             context: context,
                             builder: (context) {
-                              return itemDetail(
-                                  place,
-                                  context);
+                              return ItemDetail(place: place, context: context);
                             },
                           );
                         },
@@ -186,94 +190,169 @@ class _MapClientState extends State<MapClient> {
   }
 }
 
-Widget itemDetail(Place place, BuildContext context) {
-  const style = TextStyle(fontSize: 16);
-  return Padding(
-    padding: const EdgeInsets.all(15),
-    child: Card(
-      margin: const EdgeInsets.all(3),
-      color: Colors.white,
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(place.name,style: const TextStyle(
-                    fontSize: 20, fontWeight: FontWeight.bold,),textAlign: TextAlign.center),
-            GestureDetector(
-              onTap: () {
-                //cerrar el widget
-                Navigator.pop(context);
-                
-                // agregar a favoritos
-                LocalStorageService.addToFavoritesID(place.id!);
-                //mostrar un toast
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Agregado a favoritos'),
-                    duration: Duration(seconds: 2),
-                  ),
-                );
-              },
-              child: const Icon(Icons.favorite, color: Colors.red, size: 30),
-            ),
+class ItemDetail extends StatefulWidget {
+  final Place place;
+  final BuildContext context;
 
-            const SizedBox(height: 20),
-            CarouselSlider(
-              options: CarouselOptions(
-                height: 150.0,
-                enlargeCenterPage: true,
-                enableInfiniteScroll: false,
-                initialPage: 0,
-              ),
-              items: place.photos.map((photoUrl) {
-                return Builder(
-                  builder: (BuildContext context) {
-                    return Image.network(
-                      photoUrl,
-                      fit: BoxFit.cover,
-                      width: double.infinity,
+  const ItemDetail({super.key, required this.place, required this.context});
+
+  @override
+  ItemDetailState createState() => ItemDetailState();
+}
+
+class ItemDetailState extends State<ItemDetail> {
+  late AudioPlayer player;
+  bool isPlaying = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Inicializar el reproductor de audio
+    player = AudioPlayer();
+    // Reproducir audio si hay archivos disponibles
+    playAudioIfAvailable();
+    // Verificar si el lugar ya está en favoritos
+    LocalStorageService.isFavorite(widget.place.id!).then((isFavorite) {
+      setState(() {
+        widget.place.isFavorite = isFavorite;
+      });
+    });
+  }
+
+  void playAudioIfAvailable() async {
+    List<String> audioFiles = widget.place.photos
+        .where((element) => element.contains('.mp3'))
+        .toList();
+    if (audioFiles.isNotEmpty) {
+      await player.setSource(UrlSource(audioFiles.first));
+      player.resume();
+      isPlaying = true;
+    }
+  }
+
+  @override
+  void dispose() {
+    // Detener y liberar el reproductor de audio cuando el widget se destruya
+    if (isPlaying) {
+      player.stop();
+      player.dispose();
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const style = TextStyle(fontSize: 16);
+
+    return Padding(
+      padding: const EdgeInsets.all(15),
+      child: Card(
+        margin: const EdgeInsets.all(3),
+        color: Colors.white,
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(widget.place.name,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center),
+              GestureDetector(
+                onTap: () {
+                  //cerrar el widget
+                  Navigator.pop(context);
+                  String message = "Estado desconocido";
+                  LocalStorageService.toggleFavorite(widget.place.id!);
+                  if (widget.place.isFavorite!) {
+                    message = 'Eliminado de favoritos';
+                  }
+                  else {
+                    message = 'Agregado a favoritos';
+                  }
+                  ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(message),
+                        duration: const Duration(seconds: 2),
+                      ),
                     );
-                  },
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 10),
-            Text('dirección: ${place.address}', style: style),
-            const SizedBox(height: 10),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Icon(Icons.description, color: Colors.blueGrey),
-                const SizedBox(width: 5),
-                //Text(place.description, style: style),
-                Expanded(child: Text(place.description, style: style,textAlign: TextAlign.justify,)),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Text('Tipo: ${place.type}', style: style),
-            const SizedBox(height: 10),
-            MaterialButton(
-              padding: EdgeInsets.zero,
-              onPressed: () {
-                if (!context.mounted) return;
-                // Navigator.push(
-                //   context,
-                //   MaterialPageRoute(
-                //       builder: (context) => const CategoriesPage()), //),
-                // );
-              },
-              color: Colors.blue,
-              elevation: 6,
-              child: const Text(
-                'Ver más detalles',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                },
+                //hacer que el icono cambie de color si el lugar esta en favoritos
+                child: Icon(
+                  widget.place.isFavorite!
+                      ? Icons.favorite
+                      : Icons.favorite_border,
+                  color: widget.place.isFavorite! ? Colors.red : Colors.grey,
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 20),
+              CarouselSlider(
+                options: CarouselOptions(
+                  height: 150.0,
+                  enlargeCenterPage: true,
+                  enableInfiniteScroll: false,
+                  initialPage: 0,
+                ),
+                // Mostrar las fotos del lugar en un carrusel, solo las que sean jpg o png
+                  items: widget.place.photos.where((photo) {
+                    return photo.contains('.jpg') || photo.contains('.png');
+                  }).map((photoUrl) {
+                  return Builder(
+                    builder: (BuildContext context) {
+                      return Image.network(
+                        photoUrl, 
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                      );
+                    },
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 10),
+              Text('dirección: ${widget.place.address}', style: style),
+              const SizedBox(height: 10),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.description, color: Colors.blueGrey),
+                  const SizedBox(width: 5),
+                  //Text(place.description, style: style),
+                  Expanded(
+                      child: Text(
+                    widget.place.description,
+                    style: style,
+                    textAlign: TextAlign.justify,
+                  )),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text('Tipo: ${widget.place.type}', style: style),
+              const SizedBox(height: 10),
+              MaterialButton(
+                padding: EdgeInsets.zero,
+                onPressed: () {
+                  if (!context.mounted) return;
+                  // Navigator.push(
+                  //   context,
+                  //   MaterialPageRoute(
+                  //       builder: (context) => const CategoriesPage()), //),
+                  // );
+                },
+                color: const Color.fromARGB(255, 7, 57, 98),
+                elevation: 6,
+                child: const Text(
+                  'Ver más detalles',
+                  style: TextStyle(
+                      color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 Stream<List<RecordModel>> getAllPlacesByCategory5(String categoryId) {
