@@ -17,7 +17,6 @@ class FavoritesPageState extends State<FavoritesPage> {
       PocketBase('https://boring-carpenter.pockethost.io');
 
   List<Place> places = [];
-  List<Place> filteredPlaces = [];
   bool isLoading = true; // Variable para controlar la carga
 
   @override
@@ -28,15 +27,41 @@ class FavoritesPageState extends State<FavoritesPage> {
 
   Future<void> _loadFavorites() async {
     try {
-      final placesFavorites = await LocalStorageService.getPlacesFavorites();
-      final List<Place> records = await PocketBaseService.getFavorites(placesFavorites);
+      final List<Place> records =
+          await PocketBaseService.getPlacesWithFavoriteState();
+
       setState(() {
         places = records;
-        filteredPlaces = records;
         isLoading = false; // La carga ha finalizado
       });
     } catch (error) {
       debugPrint('Error loading favorites: $error');
+    }
+  }
+
+  Future<void> _removeFromFavorites(Place place) async {
+    try {
+      setState(() {
+        isLoading = true; // Mostrar el indicador de progreso
+      });
+
+      await LocalStorageService.removeFromFavoritesID(place.id!);
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("${place.name} eliminado de favoritos"),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+
+      await _loadFavorites(); // Actualizar la lista de favoritos
+
+      setState(() {
+        isLoading = false; // Ocultar el indicador de progreso
+      });
+    } catch (error) {
+      debugPrint('Error removing from favorites: $error');
     }
   }
 
@@ -48,17 +73,77 @@ class FavoritesPageState extends State<FavoritesPage> {
       ),
       body: isLoading
           ? const Center(
-              child: CircularProgressIndicator(), // Muestra el ProgressBar mientras se carga
+              child: CircularProgressIndicator(),
             )
-          : ListView.builder(
+          : GridView.builder(
+              scrollDirection: Axis.vertical,
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount:
+                    MediaQuery.of(context).orientation == Orientation.portrait
+                        ? 2
+                        : 4,
+                childAspectRatio:
+                    MediaQuery.of(context).orientation == Orientation.portrait
+                        ? 0.7
+                        : 0.7,
+              ),
               itemCount: places.length,
               itemBuilder: (context, index) {
                 Place place = places[index];
-                return ListTile(
-                  title: Text(place.name),
-                  onTap: () {
-                    
-                  },
+                String? jpgPhoto = place.photos.firstWhere(
+                  (photo) => photo.endsWith('.jpg'),
+                  orElse: () => '',
+                );
+                // Limitar la dirección a 70 caracteres y añadir "..." si es más largo
+                String displayAddress = place.address.length > 70
+                    ? '${place.address.substring(0, 70)}...'
+                    : place.address;
+                return Card(
+                  child: Stack(
+                    children: [
+                      Column(
+                        children: [
+                          //agregar un sizedbox para que la imagen no se vea tan pegada al borde
+                          const SizedBox(height: 10.0),
+                          if (jpgPhoto.isNotEmpty)
+                            Image.network(
+                              jpgPhoto,
+                              fit: BoxFit.cover,
+                              height: 120.0,
+                            ),
+                          Flexible(
+                            child: ListTile(
+                              title: Text(place.name),
+                              subtitle: Text(
+                                displayAddress,
+                                overflow: TextOverflow
+                                    .ellipsis, // Añade "..." si el texto excede el espacio disponible
+                                maxLines:
+                                    4, // Permite hasta 2 líneas para el texto de la dirección
+                              ),
+                              onTap: () {
+                                // Acción al tocar el ListTile
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                      Positioned(
+                        top: 5.0,
+                        right: 5.0,
+                        child: IconButton(
+                          icon: const Icon(
+                            Icons.favorite,
+                            color: Colors.red,
+                            size: 30.0,
+                          ),
+                          onPressed: () {
+                            _removeFromFavorites(place);
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
                 );
               },
             ),

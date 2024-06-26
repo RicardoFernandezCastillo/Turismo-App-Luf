@@ -47,7 +47,6 @@ class _MapClientState extends State<MapClient> {
   }
 
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -280,10 +279,11 @@ class ItemDetailState extends State<ItemDetail> {
                 },
                 //hacer que el icono cambie de color si el lugar esta en favoritos
                 child: Icon(
-                  widget.place.isFavorite!
+                  size: 30,
+                  widget.place.isFavorite
                       ? Icons.favorite
                       : Icons.favorite_border,
-                  color: widget.place.isFavorite! ? Colors.red : Colors.grey,
+                  color: widget.place.isFavorite ? Colors.red : Colors.grey,
                 ),
               ),
               const SizedBox(height: 20),

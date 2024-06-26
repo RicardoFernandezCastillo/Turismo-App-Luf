@@ -62,7 +62,6 @@ class LocalStorageService {
 
   static Future<bool> isFavorite(String id) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
       List<String> favorites = await getPlacesFavorites();
       return favorites.contains(id);
     } catch (error) {

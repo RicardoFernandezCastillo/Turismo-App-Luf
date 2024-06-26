@@ -70,19 +70,25 @@ class CategoriesPageState extends State<CategoriesPage> {
               itemBuilder: (context, index) {
                 RecordModel category = snapshot.data![index];
                 //print(category);
-                return ListTile(
-                  title: Text(category.data['name']),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            MapClient(categoryId: category.id, categoryName: category.data['name']),
-                      ),
-                    );
-                    // Aquí puedes manejar el evento de toque, por ejemplo, navegando a una nueva pantalla
-                    // que muestra los detalles de la categoría seleccionada.
-                  },
+                return Card(
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                  child: ListTile(
+                    title: Text(category.data['name']),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              MapClient(categoryId: category.id, categoryName: category.data['name']),
+                        ),
+                      );
+
+                    },
+                  ),
                 );
               },
             );
