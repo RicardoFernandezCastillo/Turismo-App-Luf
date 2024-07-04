@@ -35,7 +35,7 @@ class CategoriesPageState extends State<CategoriesPage> {
     try {
       final categories = await pb
           .collection('category')
-          .getFullList(sort: '-created', filter: 'status = 1');
+          .getFullList();
       _categoriesController.sink.add(categories);
     } catch (e) {
       _categoriesController.sink.addError(e);
@@ -53,7 +53,7 @@ class CategoriesPageState extends State<CategoriesPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Categorías'),
+        title: const Text('Categorías',),
       ),
       body: StreamBuilder<List<dynamic>>(
         stream: _categoriesController.stream,
@@ -70,19 +70,24 @@ class CategoriesPageState extends State<CategoriesPage> {
               itemBuilder: (context, index) {
                 RecordModel category = snapshot.data![index];
                 //print(category);
-                return ListTile(
-                  title: Text(category.data['name']),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            MapClient(categoryId: category.id, categoryName: category.data['name']),
-                      ),
-                    );
-                    // Aquí puedes manejar el evento de toque, por ejemplo, navegando a una nueva pantalla
-                    // que muestra los detalles de la categoría seleccionada.
-                  },
+                return Card(
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                  child: ListTile(
+                    title: Text(category.data['name']),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              MapClient(categoryId: category.id, categoryName: category.data['name']),
+                        ),
+                      );
+                    },
+                  ),
                 );
               },
             );

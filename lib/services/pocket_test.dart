@@ -1,6 +1,7 @@
 import 'dart:developer';
 
 import 'package:luf_turism_app/models/place.dart';
+import 'package:luf_turism_app/services/favorites_service.dart';
 import 'package:pocketbase/pocketbase.dart';
 
 class PocketBaseService {
@@ -53,7 +54,6 @@ class PocketBaseService {
     );
 
     records = records.where((record) {
-      if (categoryId == null) return record['status'] == 'active';
       // Comprueba si el lugar tiene una categoría y si coincide con la categoría buscada
       return record['status'] == 'active' && record['category_id'].contains(categoryId);
     }).toList();
@@ -102,8 +102,6 @@ class PocketBaseService {
               schedule: document.data['schedule'] ?? '',
             );
     }).toList();
-
-
     return places;
   }
 
@@ -118,6 +116,50 @@ class PocketBaseService {
       return record.data['status'] == 'active' && record.data['category_id'].contains(categoryId);
       
     }).toList();
+  }
+
+
+
+
+    static Future<List<Place>> getPlacesWithFavoriteState() async {
+    String imageUrl = 'https://boring-carpenter.pockethost.io/api/files/';
+
+    List<String> favorites = await LocalStorageService.getPlacesFavorites();
+
+    List<RecordModel> records = await pb.collection("location").getFullList(filter: "status = 'active'");
+    List<Place> places = [];
+
+    for (var document in records) {
+      if (favorites.contains(document.id)) {
+        Place place = Place(
+          id: document.id,
+          collectionId: document.collectionId,
+          collectionName: document.collectionName,
+          name: document.data['name'],
+          address: document.data['address'],
+          longitude: document.data['longitude'].toDouble(),
+          latitude: document.data['latitude'].toDouble(),
+          description: document.data['description'],
+          status: document.data['status'],
+          photos: document.data['photos']
+              .map<String>((photo) =>
+                  '$imageUrl${document.collectionId}/${document.id}/$photo')
+              .toList(),
+          cityId: document.data['city_id'],
+          categoryId: List<String>.from(document.data['category_id']),
+          type: document.data['type'] ?? '',
+          schedule: document.data['schedule'] ?? '',
+        );
+
+        await LocalStorageService.isFavorite(place.id!).then((isFavorite) {
+          place.isFavorite = isFavorite;
+        });
+
+        places.add(place);
+      }
+    }
+
+    return places;
   }
 }
 

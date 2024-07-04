@@ -42,7 +42,7 @@ class Place {
   List<String>? categoryId;
   String ?type;
   String? schedule;
-  bool? isFavorite = false;
+  bool isFavorite;
   String? audioPath;
   Place({
     required this.id,
@@ -57,11 +57,11 @@ class Place {
     required this.photos,
     required this.cityId,
     required this.categoryId,
-    required this.type,
-    required this.schedule,
+    this.type,
+    this.schedule,
     this.audioPath,
-    this.isFavorite,
-  });
+    bool? isFavorite,
+  }) : isFavorite = isFavorite ?? false;
 
   factory Place.fromJson(Map<String, dynamic> json) {
     return Place(

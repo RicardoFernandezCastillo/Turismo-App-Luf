@@ -17,8 +17,10 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: const Color.fromARGB(255, 58, 206, 65)),
         useMaterial3: true,
+        
       ),
       home: const NavigationBarGoo(),
+      debugShowCheckedModeBanner: false,
     );
   }
 }
