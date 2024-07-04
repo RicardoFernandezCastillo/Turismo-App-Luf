@@ -57,8 +57,8 @@ class Place {
     required this.photos,
     required this.cityId,
     required this.categoryId,
-    required this.type,
-    required this.schedule,
+    this.type,
+    this.schedule,
     this.audioPath,
     bool? isFavorite,
   }) : isFavorite = isFavorite ?? false;

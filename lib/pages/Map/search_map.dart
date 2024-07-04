@@ -8,6 +8,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:location/location.dart';
 import 'package:luf_turism_app/models/place.dart';
+import 'package:luf_turism_app/pages/Menu/place_info.dart';
 import 'package:luf_turism_app/services/favorites_service.dart';
 import 'package:pocketbase/pocketbase.dart';
 
@@ -26,11 +27,13 @@ class _MapClientState extends State<MapClient> {
   final MapController mapController = MapController();
   final Location location = Location();
   LatLng userLocation = const LatLng(0, 0);
+  List<Place> places = [];
 
   @override
   void initState() {
     super.initState();
     _getUserLocation();
+    _getAllPlacesByCategory();
   }
 
   void _getUserLocation() async {
@@ -46,6 +49,43 @@ class _MapClientState extends State<MapClient> {
     }
   }
 
+  Future<void> _getAllPlacesByCategory() async {
+    final pb = PocketBase('https://boring-carpenter.pockethost.io');
+    try {
+      var records =
+          await pb.collection('location').getFullList(sort: '-created');
+      setState(() {
+        places = records.where((record) {
+          return record.data['status'] == 'active' &&
+              record.data['category_id'].contains(widget.categoryId);
+        }).map((document) {
+          return Place(
+            id: document.id,
+            collectionId: document.collectionId,
+            collectionName: document.collectionName,
+            name: document.data['name'],
+            address: document.data['address'],
+            longitude: document.data['longitude'].toDouble(),
+            latitude: document.data['latitude'].toDouble(),
+            description: document.data['description'],
+            status: document.data['status'],
+            photos: document.data['photos']
+                .map<String>((photo) =>
+                    '$imageUrl${document.collectionId}/${document.id}/$photo')
+                .toList(),
+            cityId: document.data['city_id'],
+            categoryId: List<String>.from(document.data['category_id']),
+          );
+        }).toList();
+        var plss = places;
+        for (var element in plss) {
+          log('element: ${element.name + element.latitude.toString() + element.longitude.toString()}');
+        }
+      });
+    } catch (error) {
+      log('Error getting places: $error');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -61,96 +101,60 @@ class _MapClientState extends State<MapClient> {
             style: TextStyle(fontSize: 20, color: Colors.white)),
         backgroundColor: Colors.green[700],
       ),
-      body: StreamBuilder<List<RecordModel>>(
-        stream: getAllPlacesByCategory5(widget.categoryId),
-        builder: (context, AsyncSnapshot<List> snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (snapshot.hasError) {
-            return Text('Error: ${snapshot.error}');
-          }
-          List<Place> places = snapshot.data!.map((document) {
-            return Place(
-              id: document.id,
-              collectionId: document.collectionId,
-              collectionName: document.collectionName,
-              name: document.data['name'],
-              address: document.data['address'],
-              longitude: document.data['longitude'].toDouble(),
-              latitude: document.data['latitude'].toDouble(),
-              description: document.data['description'],
-              status: document.data['status'],
-              photos: document.data['photos']
-                  .map<String>((photo) =>
-                      '$imageUrl${document.collectionId}/${document.id}/$photo')
-                  .toList(),
-              cityId: document.data['city_id'],
-              categoryId: List<String>.from(document.data['category_id']),
-              type: document.data['type'] ?? '',
-              schedule: document.data['schedule'] ?? '',
-              audioPath: document.data['audio_path'],
-
-            );
-          }).toList();
-
-          return FlutterMap(
-            mapController: mapController,
-            options: const MapOptions(
-              initialCenter: LatLng(-17.396843874763828, -66.16765210043515),
-              initialZoom: 16,
-            ),
-            children: [
-              TileLayer(
-                urlTemplate:
-                    'https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/{z}/{x}/{y}@2x?access_token={accessToken}',
-                additionalOptions: const {
-                  'accessToken':
-                      'sk.eyJ1IjoibWF1aHQiLCJhIjoiY2x3bGtlbWpoMTl0YjJpbnJ1dGE0cDNjaiJ9.6QxsM8gdkz2ot48nL6yHMg',
-                },
-              ),
-              MarkerLayer(
-                markers: [
-                  Marker(
-                      width: 80.0,
-                      height: 80.0,
-                      point: userLocation, // Ubicación actual del usuario
-                      child: IconButton(
-                        icon: const Icon(Icons.location_on),
-                        color: Colors.blue,
-                        iconSize: 45,
-                        onPressed: () {},
-                      )),
-                  ...places.map((place) {
-                    return Marker(
-                      width: 80.0,
-                      height: 80.0,
-                      point: LatLng(
-                        place.latitude,
-                        place.longitude,
-                      ),
-                      child: IconButton(
-                        icon: const Icon(Icons.park),
-                        color: const Color.fromARGB(255, 1, 39, 70),
-                        iconSize: 45,
-                        onPressed: () {
-                          place.type = widget.categoryName;
-                          showModalBottomSheet(
-                            context: context,
-                            builder: (context) {
-                              return ItemDetail(place: place, context: context);
-                            },
-                          );
+      body: FlutterMap(
+        mapController: mapController,
+        options: const MapOptions(
+          initialCenter: LatLng(-17.396843874763828, -66.16765210043515),
+          initialZoom: 16,
+        ),
+        children: [
+          TileLayer(
+            urlTemplate:
+                'https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/{z}/{x}/{y}@2x?access_token={accessToken}',
+            additionalOptions: const {
+              'accessToken':
+                  'sk.eyJ1IjoibWF1aHQiLCJhIjoiY2x3bGtlbWpoMTl0YjJpbnJ1dGE0cDNjaiJ9.6QxsM8gdkz2ot48nL6yHMg',
+            },
+          ),
+          MarkerLayer(
+            markers: [
+              Marker(
+                  width: 80.0,
+                  height: 80.0,
+                  point: userLocation, // Ubicación actual del usuario
+                  child: IconButton(
+                    icon: const Icon(Icons.location_on),
+                    color: Colors.blue,
+                    iconSize: 45,
+                    onPressed: () {},
+                  )),
+              ...places.map((place) {
+                return Marker(
+                  width: 80.0,
+                  height: 80.0,
+                  point: LatLng(
+                    place.latitude,
+                    place.longitude,
+                  ),
+                  child: IconButton(
+                    icon: const Icon(Icons.park),
+                    color: const Color.fromARGB(255, 1, 39, 70),
+                    iconSize: 45,
+                    onPressed: () {
+                      place.type = widget.categoryName;
+                      showModalBottomSheet(
+                        context: context,
+                        builder: (context) {
+                          return ItemDetail(place: place, context: context);
                         },
-                      ),
-                    );
-                  })
-                ],
-              ),
+                      );
+                    },
+                  ),
+                );
+              })
             ],
-          );
-        },
+          ),
+        ],
       ),
       floatingActionButton: Column(
         mainAxisAlignment: MainAxisAlignment.end,
@@ -264,18 +268,17 @@ class ItemDetailState extends State<ItemDetail> {
                   Navigator.pop(context);
                   String message = "Estado desconocido";
                   LocalStorageService.toggleFavorite(widget.place.id!);
-                  if (widget.place.isFavorite!) {
+                  if (widget.place.isFavorite) {
                     message = 'Eliminado de favoritos';
-                  }
-                  else {
+                  } else {
                     message = 'Agregado a favoritos';
                   }
                   ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(message),
-                        duration: const Duration(seconds: 2),
-                      ),
-                    );
+                    SnackBar(
+                      content: Text(message),
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
                 },
                 //hacer que el icono cambie de color si el lugar esta en favoritos
                 child: Icon(
@@ -295,13 +298,13 @@ class ItemDetailState extends State<ItemDetail> {
                   initialPage: 0,
                 ),
                 // Mostrar las fotos del lugar en un carrusel, solo las que sean jpg o png
-                  items: widget.place.photos.where((photo) {
-                    return photo.contains('.jpg') || photo.contains('.png');
-                  }).map((photoUrl) {
+                items: widget.place.photos.where((photo) {
+                  return photo.contains('.jpg') || photo.contains('.png');
+                }).map((photoUrl) {
                   return Builder(
                     builder: (BuildContext context) {
                       return Image.network(
-                        photoUrl, 
+                        photoUrl,
                         fit: BoxFit.cover,
                         width: double.infinity,
                       );
@@ -319,7 +322,7 @@ class ItemDetailState extends State<ItemDetail> {
                   const SizedBox(width: 5),
                   //Text(place.description, style: style),
                   Expanded(
-                      child: Text(
+                    child: Text(
                     widget.place.description,
                     style: style,
                     textAlign: TextAlign.justify,
@@ -327,17 +330,20 @@ class ItemDetailState extends State<ItemDetail> {
                 ],
               ),
               const SizedBox(height: 10),
-              Text('Tipo: ${widget.place.type}', style: style),
+              Text('Tipo: ${widget.place.type}', style: style), 
               const SizedBox(height: 10),
               MaterialButton(
                 padding: EdgeInsets.zero,
                 onPressed: () {
+                  player.stop();
+                  player.dispose();
+
                   if (!context.mounted) return;
-                  // Navigator.push(
-                  //   context,
-                  //   MaterialPageRoute(
-                  //       builder: (context) => const CategoriesPage()), //),
-                  // );
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => PlaceInfoPage(place: widget.place)), //),
+                  );
                 },
                 color: const Color.fromARGB(255, 7, 57, 98),
                 elevation: 6,
@@ -355,43 +361,43 @@ class ItemDetailState extends State<ItemDetail> {
   }
 }
 
-Stream<List<RecordModel>> getAllPlacesByCategory5(String categoryId) {
-  final pb = PocketBase('https://boring-carpenter.pockethost.io');
+// Stream<List<RecordModel>> getAllPlacesByCategory5(String categoryId) {
+//   final pb = PocketBase('https://boring-carpenter.pockethost.io');
 
-  // Crear un controlador de stream para manejar los datos en tiempo real
-  final streamController = StreamController<List<RecordModel>>();
+//   // Crear un controlador de stream para manejar los datos en tiempo real
+//   final streamController = StreamController<List<RecordModel>>();
 
-  // Obtener la lista inicial de registros
-  pb.collection('location').getFullList(sort: '-created').then((records) {
-    streamController.add(
-      records.where((record) {
-        return record.data['status'] == 'active' &&
-            record.data['category_id'].contains(categoryId);
-      }).toList(),
-    );
-  }).catchError((error) {
-    streamController.addError(error);
-  });
+//   // Obtener la lista inicial de registros
+//   pb.collection('location').getFullList(sort: '-created').then((records) {
+//     streamController.add(
+//       records.where((record) {
+//         return record.data['status'] == 'active' &&
+//             record.data['category_id'].contains(categoryId);
+//       }).toList(),
+//     );
+//   }).catchError((error) {
+//     streamController.addError(error);
+//   });
 
-  // Suscribirse a los cambios en la colección
-  pb.collection('location').subscribe('*', (e) {
-    // Cuando se produce un cambio, obtener la lista actualizada de registros y agregarla al stream
-    pb.collection('location').getFullList(sort: '-created').then((records) {
-      streamController.add(
-        records.where((record) {
-          return record.data['status'] == 'active' &&
-              record.data['category_id'].contains(categoryId);
-        }).toList(),
-      );
-    }).catchError((error) {
-      streamController.addError(error);
-    });
-  });
+//   // Suscribirse a los cambios en la colección
+//   pb.collection('location').subscribe('*', (e) {
+//     // Cuando se produce un cambio, obtener la lista actualizada de registros y agregarla al stream
+//     pb.collection('location').getFullList(sort: '-created').then((records) {
+//       streamController.add(
+//         records.where((record) {
+//           return record.data['status'] == 'active' &&
+//               record.data['category_id'].contains(categoryId);
+//         }).toList(),
+//       );
+//     }).catchError((error) {
+//       streamController.addError(error);
+//     });
+//   });
 
-  // Cerrar el StreamController cuando ya no se necesite
-  streamController.onCancel = () {
-    streamController.close();
-  };
+//   // Cerrar el StreamController cuando ya no se necesite
+//   streamController.onCancel = () {
+//     streamController.close();
+//   };
 
-  return streamController.stream;
-}
+//   return streamController.stream;
+// }

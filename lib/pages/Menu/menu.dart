@@ -16,8 +16,8 @@ class _NavigationBarGooState extends State<NavigationBarGoo> {
     final List<Widget> _pages = [
     const CategoriesPage(),
     const FavoritesPage(),
-    const SearchPage(),
-    const ProfilePage(),
+    // const SearchPage(),
+    // const ProfilePage(),
   ];
   @override
   Widget build(BuildContext context) {
@@ -52,16 +52,16 @@ final _navBarItems = [
     title: const Text("Favoritos"),
     selectedColor: Colors.pink,
   ),
-  SalomonBottomBarItem(
-    icon: const Icon(Icons.search),
-    title: const Text("Search"),
-    selectedColor: Colors.orange,
-  ),
-  SalomonBottomBarItem(
-    icon: const Icon(Icons.person),
-    title: const Text("Profile"),
-    selectedColor: Colors.teal,
-  ),
+  // SalomonBottomBarItem(
+  //   icon: const Icon(Icons.search),
+  //   title: const Text("Search"),
+  //   selectedColor: Colors.orange,
+  // ),
+  // SalomonBottomBarItem(
+  //   icon: const Icon(Icons.person),
+  //   title: const Text("Profile"),
+  //   selectedColor: Colors.teal,
+  // ),
 ];
 
 class HomePage extends StatelessWidget {

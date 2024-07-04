@@ -35,7 +35,7 @@ class CategoriesPageState extends State<CategoriesPage> {
     try {
       final categories = await pb
           .collection('category')
-          .getFullList(sort: '-created', filter: 'status = 1');
+          .getFullList();
       _categoriesController.sink.add(categories);
     } catch (e) {
       _categoriesController.sink.addError(e);
@@ -53,7 +53,7 @@ class CategoriesPageState extends State<CategoriesPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Categorías'),
+        title: const Text('Categorías',),
       ),
       body: StreamBuilder<List<dynamic>>(
         stream: _categoriesController.stream,
@@ -86,7 +86,6 @@ class CategoriesPageState extends State<CategoriesPage> {
                               MapClient(categoryId: category.id, categoryName: category.data['name']),
                         ),
                       );
-
                     },
                   ),
                 );

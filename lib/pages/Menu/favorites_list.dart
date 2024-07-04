@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:luf_turism_app/models/place.dart';
+import 'package:luf_turism_app/pages/Menu/place_info.dart';
 import 'package:luf_turism_app/services/favorites_service.dart';
 import 'package:luf_turism_app/services/pocket_test.dart';
 import 'package:pocketbase/pocketbase.dart';
@@ -68,85 +69,88 @@ class FavoritesPageState extends State<FavoritesPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Favoritos'),
-      ),
-      body: isLoading
-          ? const Center(
-              child: CircularProgressIndicator(),
-            )
-          : GridView.builder(
-              scrollDirection: Axis.vertical,
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount:
-                    MediaQuery.of(context).orientation == Orientation.portrait
-                        ? 2
-                        : 4,
-                childAspectRatio:
-                    MediaQuery.of(context).orientation == Orientation.portrait
-                        ? 0.7
-                        : 0.7,
-              ),
-              itemCount: places.length,
-              itemBuilder: (context, index) {
-                Place place = places[index];
-                String? jpgPhoto = place.photos.firstWhere(
-                  (photo) => photo.endsWith('.jpg'),
-                  orElse: () => '',
-                );
-                // Limitar la dirección a 70 caracteres y añadir "..." si es más largo
-                String displayAddress = place.address.length > 70
-                    ? '${place.address.substring(0, 70)}...'
-                    : place.address;
-                return Card(
-                  child: Stack(
-                    children: [
-                      Column(
+        appBar: AppBar(
+          title: const Text('Favoritos'),
+        ),
+        body: isLoading
+            ? const Center(
+                child: CircularProgressIndicator(),
+              )
+            : GridView.builder(
+                scrollDirection: Axis.vertical,
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount:
+                      MediaQuery.of(context).orientation == Orientation.portrait
+                          ? 2
+                          : 4,
+                  childAspectRatio:
+                      MediaQuery.of(context).orientation == Orientation.portrait
+                          ? 0.7
+                          : 0.7,
+                ),
+                itemCount: places.length,
+                itemBuilder: (context, index) {
+                  Place place = places[index];
+                  String? jpgPhoto = place.photos.firstWhere(
+                    (photo) => photo.endsWith('.jpg'),
+                    orElse: () => '',
+                  );
+                  String displayAddress = place.address.length > 70
+                      ? '${place.address.substring(0, 70)}...'
+                      : place.address;
+                  return InkWell(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => PlaceInfoPage(place: place),
+                        ),
+                      );
+                    },
+                    child: Card(
+                      child: Stack(
                         children: [
-                          //agregar un sizedbox para que la imagen no se vea tan pegada al borde
-                          const SizedBox(height: 10.0),
-                          if (jpgPhoto.isNotEmpty)
-                            Image.network(
-                              jpgPhoto,
-                              fit: BoxFit.cover,
-                              height: 120.0,
-                            ),
-                          Flexible(
-                            child: ListTile(
-                              title: Text(place.name),
-                              subtitle: Text(
-                                displayAddress,
-                                overflow: TextOverflow
-                                    .ellipsis, // Añade "..." si el texto excede el espacio disponible
-                                maxLines:
-                                    4, // Permite hasta 2 líneas para el texto de la dirección
+                          Column(
+                            children: [
+                              const SizedBox(height: 10.0),
+                              if (jpgPhoto.isNotEmpty)
+                                Image.network(
+                                  jpgPhoto,
+                                  fit: BoxFit.cover,
+                                  height: 120.0,
+                                ),
+                              Flexible(
+                                child: ListTile(
+                                  title: Text(place.name),
+                                  subtitle: Text(
+                                    displayAddress,
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 4,
+                                  ),
+                                  // Eliminar onTap aquí
+                                ),
                               ),
-                              onTap: () {
-                                // Acción al tocar el ListTile
+                            ],
+                          ),
+                          Positioned(
+                            top: 5.0,
+                            right: 5.0,
+                            child: IconButton(
+                              icon: const Icon(
+                                Icons.favorite,
+                                color: Colors.red,
+                                size: 30.0,
+                              ),
+                              onPressed: () {
+                                _removeFromFavorites(place);
                               },
                             ),
                           ),
                         ],
                       ),
-                      Positioned(
-                        top: 5.0,
-                        right: 5.0,
-                        child: IconButton(
-                          icon: const Icon(
-                            Icons.favorite,
-                            color: Colors.red,
-                            size: 30.0,
-                          ),
-                          onPressed: () {
-                            _removeFromFavorites(place);
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-    );
+                    ),
+                  );
+                },
+              ));
   }
 }

@@ -54,7 +54,6 @@ class PocketBaseService {
     );
 
     records = records.where((record) {
-      if (categoryId == null) return record['status'] == 'active';
       // Comprueba si el lugar tiene una categoría y si coincide con la categoría buscada
       return record['status'] == 'active' && record['category_id'].contains(categoryId);
     }).toList();
