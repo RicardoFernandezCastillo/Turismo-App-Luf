@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:luf_turism_app/pages/Menu/menu.dart';
+import 'package:luf_turism_app/pages/Menu/main_screen.dart';
 import 'package:luf_turism_app/services/pocket_test.dart';
 import 'package:pocketbase/pocketbase.dart';
 
@@ -19,7 +19,7 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
         
       ),
-      home: const NavigationBarGoo(),
+      home: const MainScreen(),
       debugShowCheckedModeBanner: false,
     );
   }

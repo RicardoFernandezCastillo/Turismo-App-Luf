@@ -71,6 +71,7 @@ class FavoritesPageState extends State<FavoritesPage> {
     return Scaffold(
         appBar: AppBar(
           title: const Text('Favoritos'),
+          automaticallyImplyLeading: false
         ),
         body: isLoading
             ? const Center(

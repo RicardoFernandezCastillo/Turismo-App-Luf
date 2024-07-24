@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:location/location.dart';
+import 'package:luf_turism_app/models/categoryDB/category_db.dart';
 import 'package:luf_turism_app/models/place.dart';
 import 'package:luf_turism_app/pages/Menu/place_info.dart';
 import 'package:luf_turism_app/services/favorites_service.dart';
@@ -29,6 +30,10 @@ class _MapClientState extends State<MapClient> {
   LatLng userLocation = const LatLng(0, 0);
   List<Place> places = [];
 
+  List<Icon> iconsCategory = IconsInfo.icons;
+
+  Icon currentIcon = const Icon(Icons.error);
+
   @override
   void initState() {
     super.initState();
@@ -43,7 +48,11 @@ class _MapClientState extends State<MapClient> {
         userLocation =
             LatLng(currentLocation.latitude!, currentLocation.longitude!);
         mapController.move(userLocation, 16.0);
+
+        currentIcon = IconsInfo.icons.firstWhere((icon)=> icon.semanticLabel == widget.categoryName, orElse: ()=> const Icon(Icons.park));
       });
+
+      
     } catch (e) {
       log('Error obteniendo la ubicación: $e');
     }
@@ -137,9 +146,10 @@ class _MapClientState extends State<MapClient> {
                     place.longitude,
                   ),
                   child: IconButton(
-                    icon: const Icon(Icons.park),
+                    icon: currentIcon,
                     color: const Color.fromARGB(255, 1, 39, 70),
                     iconSize: 45,
+                    tooltip: place.name,
                     onPressed: () {
                       place.type = widget.categoryName;
                       showModalBottomSheet(
@@ -319,18 +329,20 @@ class ItemDetailState extends State<ItemDetail> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Icon(Icons.description, color: Colors.blueGrey),
-                  const SizedBox(width: 5),
+
                   //Text(place.description, style: style),
                   Expanded(
                     child: Text(
                     widget.place.description,
                     style: style,
-                    textAlign: TextAlign.justify,
+                    textAlign: TextAlign.left,
+                    
                   )),
+                  const SizedBox(width: 15),              
                 ],
               ),
               const SizedBox(height: 10),
-              Text('Tipo: ${widget.place.type}', style: style), 
+              Text('Tipo: ${widget.place.type}', style: style),
               const SizedBox(height: 10),
               MaterialButton(
                 padding: EdgeInsets.zero,
@@ -342,7 +354,8 @@ class ItemDetailState extends State<ItemDetail> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                        builder: (context) => PlaceInfoPage(place: widget.place)), //),
+                        builder: (context) =>
+                            PlaceInfoPage(place: widget.place)), //),
                   );
                 },
                 color: const Color.fromARGB(255, 7, 57, 98),
